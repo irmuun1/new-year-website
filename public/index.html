@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login System</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      margin: 0;
+      padding: 0;
+    }
+    .container {
+      max-width: 400px;
+      margin: 50px auto;
+    }
+    input, button {
+      width: 100%;
+      margin: 10px 0;
+      padding: 10px;
+      font-size: 16px;
+    }
+    #result-container {
+      margin-top: 20px;
+    }
+    .hidden {
+      display: none;
+    }
+    .drumroll {
+      font-size: 24px;
+      font-weight: bold;
+      animation: shake 0.5s infinite;
+    }
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-5px); }
+      50% { transform: translateX(5px); }
+      75% { transform: translateX(-5px); }
+    }
+  </style>
+</head>
+<body>
+  <div id="login-container" class="container">
+    <h1>Login</h1>
+    <input type="email" id="login-email" placeholder="School Email">
+    <input type="password" id="login-password" placeholder="Password">
+    <button onclick="login()">Login</button>
+    <p><a href="#" onclick="showForgotPassword()">Forgot Password?</a></p>
+    <p><a href="#" onclick="showSignup()">Don't have an account? Sign Up</a></p>
+    <p id="login-message"></p>
+  </div>
+
+  <div id="signup-container" class="container hidden">
+    <h1>Sign Up</h1>
+    <input type="email" id="signup-email" placeholder="School Email">
+    <input type="password" id="signup-password" placeholder="Password">
+    <button onclick="signup()">Sign Up</button>
+    <p><a href="#" onclick="showLogin()">Back to Login</a></p>
+    <p id="signup-message"></p>
+  </div>
+
+  <div id="forgot-password-container" class="container hidden">
+    <h1>Forgot Password</h1>
+    <input type="email" id="forgot-password-email" placeholder="School Email">
+    <button onclick="forgotPassword()">Send Reset Link</button>
+    <p><a href="#" onclick="showLogin()">Back to Login</a></p>
+    <p id="forgot-password-message"></p>
+  </div>
+
+  <div id="result-container" class="container hidden">
+    <div id="drumroll" class="hidden drumroll">🎉 Drumroll... 🎉</div>
+    <div id="result-name" class="hidden"></div>
+  </div>
+
+  <script>
+    const apiUrl = "http://localhost:3000";
+
+    function showLogin() {
+      document.getElementById("login-container").classList.remove("hidden");
+      document.getElementById("signup-container").classList.add("hidden");
+      document.getElementById("forgot-password-container").classList.add("hidden");
+    }
+
+    function showSignup() {
+      document.getElementById("signup-container").classList.remove("hidden");
+      document.getElementById("login-container").classList.add("hidden");
+      document.getElementById("forgot-password-container").classList.add("hidden");
+    }
+
+    function showForgotPassword() {
+      document.getElementById("forgot-password-container").classList.remove("hidden");
+      document.getElementById("login-container").classList.add("hidden");
+      document.getElementById("signup-container").classList.add("hidden");
+    }
+
+    async function signup() {
+      const email = document.getElementById("signup-email").value;
+      const password = document.getElementById("signup-password").value;
+
+      const response = await fetch(`${apiUrl}/signup`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const message = await response.text();
+      document.getElementById("signup-message").textContent = message;
+
+      if (response.ok) {
+        showLogin();
+      }
+    }
+
+    async function login() {
+      const email = document.getElementById("login-email").value;
+      const password = document.getElementById("login-password").value;
+
+      const response = await fetch(`${apiUrl}/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+
+      if (response.ok) {
+        const { token } = await response.json();
+        localStorage.setItem("authToken", token);
+        showResult();
+      } else {
+        document.getElementById("login-message").textContent = await response.text();
+      }
+    }
+
+    async function forgotPassword() {
+      const email = document.getElementById("forgot-password-email").value;
+
+      const response = await fetch(`${apiUrl}/forgot-password`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+
+      const message = await response.text();
+      document.getElementById("forgot-password-message").textContent = message;
+    }
+
+    async function showResult() {
+      const token = localStorage.getItem("authToken");
+      const response = await fetch(`${apiUrl}/assigned`, {
+        method: "GET",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (response.ok) {
+        const { name } = await response.json();
+        const drumroll = localStorage.getItem("drumrollShown") || false;
+
+        document.getElementById("login-container").classList.add("hidden");
+        document.getElementById("result-container").classList.remove("hidden");
+
+        if (!drumroll) {
+          document.getElementById("drumroll").classList.remove("hidden");
+          setTimeout(() => {
+            document.getElementById("drumroll").classList.add("hidden");
+            document.getElementById("result-name").textContent = `You have been assigned to: ${name}`;
+            document.getElementById("result-name").classList.remove("hidden");
+            localStorage.setItem("drumrollShown", true);
+          }, 3000);
+        } else {
+          document.getElementById("result-name").textContent = `You have been assigned to: ${name}`;
+          document.getElementById("result-name").classList.remove("hidden");
+        }
+      } else {
+        localStorage.removeItem("authToken");
+        showLogin();
+      }
+    }
+
+    // Auto-login if token exists
+    if (localStorage.getItem("authToken")) showResult();
+  </script>
+</body>
+</html>

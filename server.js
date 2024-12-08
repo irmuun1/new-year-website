@@ -16,7 +16,7 @@ app.use(express.static("public"));
 
 // File paths
 const USERS_CSV = path.join(__dirname, "users.csv");
-const ASSOCIATIONS_CSV = path.join(__dirname, "associations.csv");
+const ASSOCIATIONS_CSV = path.join(__dirname, "data/associations.csv");
 
 // Email transporter (replace with actual credentials)
 const transporter = nodemailer.createTransport({
